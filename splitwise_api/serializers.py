@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from splitwise_api.models import SplitwiseTransaction
 
 
 class UserSerializer(serializers.BaseSerializer):
@@ -190,3 +191,10 @@ class NotificationSerializer(serializers.BaseSerializer):
             "created_at": obj.getCreatedAt(),
             "created_by": obj.getCreatedBy(),
         }
+
+class SplitwiseTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SplitwiseTransaction
+        fields = ('id', 'splitwise_user_id', 'bank_transaction_id', 'bank_transaction_time',
+                  'bank_transaction_desc', 'transaction_amount', 'splitwise_transaction_id',
+                  'splitwise_group_id')

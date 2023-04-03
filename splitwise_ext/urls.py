@@ -20,6 +20,8 @@ from splitwise_api.views import (
     SplitwiseCallbackView,
     UserGroupsInfoView,
     UserInfoView,
+    UploadCsvView,
+    GetTransactions
 )
 
 urlpatterns = [
@@ -27,4 +29,6 @@ urlpatterns = [
     path("splitwise/callback/", SplitwiseCallbackView.as_view(), name="splitwise_callback"),
     path("splitwise/user_info/", UserInfoView.as_view(), name="splitwise_user_info"),
     path("splitwise/groups_info/", UserGroupsInfoView.as_view(), name="splitwise_user_info"),
+    path('splitwise/upload_csv/', UploadCsvView.as_view(), name='upload_csv'),
+    path('splitwise/get_transaction', GetTransactions.as_view(), name='get_transaction'),
 ]

@@ -4,10 +4,16 @@ import requests
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from requests_oauthlib import OAuth2Session
+from datetime import datetime
 from rest_framework.renderers import JSONRenderer
 from rest_framework.views import APIView
+import csv
+from django.db.models import Q
+from io import StringIO
+from django.shortcuts import render
+from .models import SplitwiseTransaction
 
-from .serializers import GroupSerializer, UserSerializer
+from .serializers import GroupSerializer, SplitwiseTransactionSerializer, UserSerializer
 from .utils import SplitwiseUtils
 
 CLIENT_ID = settings.SPLITWISE_CLIENT_ID
@@ -88,3 +94,37 @@ class UserGroupsInfoView(APIView):
             return JsonResponse({"result": serializer.data})
         else:
             return JsonResponse({"error": "Failed to fetch user info"})
+
+class UploadCsvView(APIView):
+    def post(self, request):
+        csv_file = request.FILES['csv_file'].read().decode('UTF-8')
+        data = StringIO(csv_file)
+        reader = csv.DictReader(data)
+        # next(reader)  # Skip header row
+
+        user_id = request.data.get("user_id")
+
+        for row in reader:
+            date = datetime.strptime(row['Date'], '%d/%m/%y').strftime('%Y-%m-%d') if row["Date"] else None
+            debit = float(row['Debit']) if row['Debit'] else 0.0
+            bank_transaction_id = row['Txn']
+            existing_transactions = SplitwiseTransaction.objects.filter(
+                Q(bank_transaction_id=bank_transaction_id) | Q(splitwise_transaction_id=bank_transaction_id)
+            )
+            if not existing_transactions:
+                SplitwiseTransaction.objects.create(
+                    bank_transaction_time=date,
+                    bank_transaction_desc=row['Description'],
+                    bank_transaction_id=row['Txn'],
+                    transaction_amount=debit,
+                    splitwise_user_id=user_id
+                )
+        return JsonResponse({"success": ""})
+    
+class GetTransactions(APIView):
+    def get(self, request):
+        user_id = request.GET.get("user_id")
+
+        transactions = SplitwiseTransaction.objects.filter(splitwise_user_id=user_id)
+        serializer = SplitwiseTransactionSerializer(transactions, many=True)
+        return JsonResponse(serializer.data)

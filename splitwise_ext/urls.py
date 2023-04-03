@@ -16,6 +16,7 @@ Including another URLconf
 from django.urls import include, path
 
 from splitwise_api.views import (
+    LogoutView,
     SplitwiseAuthView,
     SplitwiseCallbackView,
     UserGroupsInfoView,
@@ -26,9 +27,11 @@ from splitwise_api.views import (
 
 urlpatterns = [
     path("splitwise/auth/", SplitwiseAuthView.as_view(), name="splitwise_auth"),
-    path("splitwise/callback/", SplitwiseCallbackView.as_view(), name="splitwise_callback"),
+    path("splitwise/callback", SplitwiseCallbackView.as_view(), name="splitwise_callback"),
     path("splitwise/user_info/", UserInfoView.as_view(), name="splitwise_user_info"),
     path("splitwise/groups_info/", UserGroupsInfoView.as_view(), name="splitwise_user_info"),
     path('splitwise/upload_csv/', UploadCsvView.as_view(), name='upload_csv'),
     path('splitwise/get_transaction', GetTransactions.as_view(), name='get_transaction'),
+    path("splitwise/logout/", LogoutView.as_view(), name="logout"),
+    path("splitwise/", include("splitwise_api.urls")),
 ]

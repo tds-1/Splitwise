@@ -14,11 +14,17 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 from django.urls import include, path
-from splitwise_api.views import SplitwiseAuthView, SplitwiseCallbackView, UserInfoView, UserGroupsInfoView
+
+from splitwise_api.views import (
+    SplitwiseAuthView,
+    SplitwiseCallbackView,
+    UserGroupsInfoView,
+    UserInfoView,
+)
 
 urlpatterns = [
-    path('splitwise/auth/', SplitwiseAuthView.as_view(), name='splitwise_auth'),
-    path('splitwise/callback/', SplitwiseCallbackView.as_view(), name='splitwise_callback'),
-    path('splitwise/user_info/', UserInfoView.as_view(), name='splitwise_user_info'),
-    path('splitwise/groups_info/', UserGroupsInfoView.as_view(), name='splitwise_user_info'),
+    path("splitwise/auth/", SplitwiseAuthView.as_view(), name="splitwise_auth"),
+    path("splitwise/callback/", SplitwiseCallbackView.as_view(), name="splitwise_callback"),
+    path("splitwise/user_info/", UserInfoView.as_view(), name="splitwise_user_info"),
+    path("splitwise/groups_info/", UserGroupsInfoView.as_view(), name="splitwise_user_info"),
 ]

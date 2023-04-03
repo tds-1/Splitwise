@@ -1,7 +1,7 @@
+from django.conf import settings
 from splitwise import Splitwise
 from splitwise.expense import Expense
 from splitwise.user import ExpenseUser
-from django.conf import settings
 
 CONSUMER_KEY = settings.SPLITWISE_CLIENT_ID
 CONSUMER_SECRET = settings.SPLITWISE_CLIENT_SECRET

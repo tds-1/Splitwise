@@ -13,3 +13,17 @@ services:
       - SECRET_KEY=your_secret_key
       - SPLITWISE_CLIENT_ID=${SPLITWISE_CLIENT_ID}
       - SPLITWISE_CLIENT_SECRET=${SPLITWISE_CLIENT_SECRET}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}

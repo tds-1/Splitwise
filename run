@@ -1,0 +1,39 @@
+function get_base_command () {
+    echo "docker-compose  "
+}
+
+base_command=$(get_base_command)
+
+if [[ $? -ne 0 ]]; then
+    echo $base_command
+    echo "Aborted!"
+    exit 1
+fi
+
+if [[ $# -eq 0 ]]; then
+    COMMAND="up"
+else
+    case $1 in
+        update)
+            eval "$base_command up -d --build"
+            exit 0
+            ;;
+        migrate)
+            eval "$base_command exec web python manage.py migrate"
+            exit 0
+            ;;
+        shell)
+            eval "$base_command exec web python manage.py shell_plus"
+            exit 0
+            ;;
+        makemigrations)
+            eval "$base_command exec web python manage.py makemigrations $2 $3"
+            exit 0
+            ;;
+        *)
+        COMMAND=$@
+
+    esac
+fi
+
+eval "$base_command $COMMAND"

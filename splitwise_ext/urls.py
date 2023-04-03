@@ -29,4 +29,5 @@ urlpatterns = [
     path("splitwise/user_info/", UserInfoView.as_view(), name="splitwise_user_info"),
     path("splitwise/groups_info/", UserGroupsInfoView.as_view(), name="splitwise_user_info"),
     path("splitwise/logout/", LogoutView.as_view(), name="logout"),
+    path("splitwise_api/", include("splitwise_api.urls")),
 ]

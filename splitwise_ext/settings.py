@@ -27,7 +27,9 @@ SECRET_KEY = "x7wqb*kakr9td+_o=$1a2$33d(vr)n++pvt&%tkq#726o=cfkl"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+]
 
 
 # Application definition
@@ -41,11 +43,13 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "splitwise_api",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -54,6 +58,19 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "splitwise_ext.urls"
+
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost:3000",
+]
+
+CORS_ALLOW_HEADERS = (
+    "access-token",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "g-recaptcha-response",
+)
 
 TEMPLATES = [
     {

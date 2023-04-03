@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=your_secret_key
+      - SPLITWISE_CLIENT_ID=${SPLITWISE_CLIENT_ID}
+      - SPLITWISE_CLIENT_SECRET=${SPLITWISE_CLIENT_SECRET}

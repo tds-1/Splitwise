@@ -30,6 +30,11 @@ class FriendSerializer(serializers.BaseSerializer):
     def to_representation(self, obj):
         return {
             "id": obj.getId(),
+            "first_name": obj.getFirstName(),
+            "last_name": obj.getLastName(),
+            "email": obj.getEmail(),
+            "registration_status": obj.getRegistrationStatus(),
+            "picture": obj.getPicture().__dict__,
             "balances": BalanceSerializer(obj.getBalances(), many=True).data,
         }
 

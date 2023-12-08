@@ -16,13 +16,16 @@ Including another URLconf
 from django.urls import include, path
 
 from splitwise_api.views import (
+    CreateSingleTransaction,
     LogoutView,
     SplitwiseAuthView,
     SplitwiseCallbackView,
     UserGroupsInfoView,
     UserInfoView,
     UploadCsvView,
-    GetTransactions
+    GetTransactions,
+    UserFriendsInfoView,
+    CreateBulkTransactions,
 )
 
 urlpatterns = [
@@ -32,6 +35,10 @@ urlpatterns = [
     path("splitwise/groups_info/", UserGroupsInfoView.as_view(), name="splitwise_user_info"),
     path('splitwise/upload_csv/', UploadCsvView.as_view(), name='upload_csv'),
     path('splitwise/get_transaction', GetTransactions.as_view(), name='get_transaction'),
+    path("splitwise/groups_info/", UserGroupsInfoView.as_view(), name="splitwise_groups_info"),
+    path("splitwise/friends_info/", UserFriendsInfoView.as_view(), name="splitwise_friends_info"),
     path("splitwise/logout/", LogoutView.as_view(), name="logout"),
+    path("splitwise/create_bulk_transactions/", CreateBulkTransactions.as_view(), name="create_bulk_transactions"),
+    path("splitwise/create_single_transaction/",  CreateSingleTransaction.as_view(), name="create_single_transaction"),
     path("splitwise/", include("splitwise_api.urls")),
 ]

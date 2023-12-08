@@ -10,19 +10,17 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import csv
-from django.db.models import Q
 from io import StringIO
-from django.shortcuts import render
 from .models import SplitwiseTransaction
 
-from .serializers import GroupSerializer, SplitwiseTransactionSerializer, UserSerializer
+from .serializers import ExpenseSerializer, GroupSerializer, SplitwiseTransactionSerializer, UserSerializer
 from splitwise_api.decorators import is_authenticated
 
-from .utils import SplitwiseUtils
+from .serializers import FriendSerializer, GroupSerializer, UserSerializer
 
 CLIENT_ID = settings.SPLITWISE_CLIENT_ID
 CLIENT_SECRET = settings.SPLITWISE_CLIENT_SECRET
-REDIRECT_URI = "http://localhost:8000/splitwise/callback"
+REDIRECT_URI = f"{settings.API_HOST}/splitwise/callback"
 AUTHORIZATION_BASE_URL = "https://secure.splitwise.com/oauth/authorize"
 TOKEN_URL = "https://secure.splitwise.com/oauth/token"
 
@@ -70,7 +68,7 @@ class SplitwiseCallbackView(APIView):
             access_token = token_data["access_token"]
             if access_token:
                 return HttpResponseRedirect(
-                    f"http://localhost:3000/set_auth_token?access_token={access_token}"
+                    f"{settings.API_HOST}/set_auth_token?access_token={access_token}"
                 )
             else:
                 return Response(
@@ -113,10 +111,7 @@ class LogoutView(APIView):
 class UserGroupsInfoView(APIView):
     @is_authenticated()
     def get(self, request):
-        access_token = request.session.get("access_token")
-        if not access_token:
-            return JsonResponse({"error": "Access token not found in session"})
-        splitwise_obj = SplitwiseUtils(access_token)
+        splitwise_obj = request.splitwise_obj
         group_info = splitwise_obj.get_groups()
         if group_info:
             serializer = GroupSerializer(group_info, many=True)
@@ -127,31 +122,65 @@ class UserGroupsInfoView(APIView):
             )
 
 class UploadCsvView(APIView):
+    @is_authenticated()
     def post(self, request):
-        csv_file = request.FILES['csv_file'].read().decode('UTF-8')
+        csv_file = request.FILES['file'].read().decode('UTF-8')
         data = StringIO(csv_file)
         reader = csv.DictReader(data)
-        # next(reader)  # Skip header row
 
-        user_id = request.data.get("user_id")
-
+        user_id = request.user.getId()
+        transactions = []
+        vendor = "paytm_wallet"
         for row in reader:
-            date = datetime.strptime(row['Date'], '%d/%m/%y').strftime('%Y-%m-%d') if row["Date"] else None
-            debit = float(row['Debit']) if row['Debit'] else 0.0
-            bank_transaction_id = row['Txn']
+            if vendor ==  "paytm_wallet":
+                date = datetime.strptime(row['Date'], "%d/%m/%Y %H:%M:%S") if row["Date"] else None
+                if row["Status"] == "SUCCESS":
+                    debit = float(row['Debit']) if row['Debit'] else 0.0
+                else:
+                    continue
+                bank_transaction_id = row['Wallet Txn ID']
+                description = row["Activity"] + row["Comment"]
+            elif vendor ==  "paytm":
+                date = datetime.strptime(row['Date and Time'], "%d-%m-%Y %H:%M:%S") if row["Date and Time"] else None
+                if row["Type"] == "D":
+                    debit = float(row['Amount']) if row['Amount'] else 0.0
+                else:
+                    continue
+                bank_transaction_id = row['Reference no']
+                description = row["Beneficiary name"]
+            elif vendor ==  "bob":
+                print(row.keys())
+                if row["type"].strip() == "Credit":
+                    continue
+                date = datetime.strptime(row['Date'], '%d/%m/%Y') if row["Date"] else None
+                debit = float(row['Amount']) if row['Amount'] else 0.0
+                bank_transaction_id = row['Description']
+                description = row["Description"]
+            else:
+                date = datetime.strptime(row['Date'], '%d/%m/%y').strftime('%Y-%m-%d') if row["Date"] else None
+                debit = float(row['Debit']) if row['Debit'] else 0.0
+                bank_transaction_id = row['Txn']
+                description = row["Description"]
+            if debit == 0:
+                continue
+
             existing_transactions = SplitwiseTransaction.objects.filter(
-                Q(bank_transaction_id=bank_transaction_id) | Q(splitwise_transaction_id=bank_transaction_id)
+                bank_transaction_id=bank_transaction_id, bank_transaction_time=date, transaction_amount=debit
             )
-            if not existing_transactions:
-                SplitwiseTransaction.objects.create(
-                    bank_transaction_time=date,
-                    bank_transaction_desc=row['Description'],
-                    bank_transaction_id=row['Txn'],
-                    transaction_amount=debit,
-                    splitwise_user_id=user_id
-                )
-        return JsonResponse({"success": ""})
-    
+            obj, _ = SplitwiseTransaction.objects.get_or_create(
+                bank_transaction_time=date,
+                bank_transaction_desc=description,
+                bank_transaction_id=bank_transaction_id,
+                transaction_amount=debit,
+                splitwise_user_id=user_id,
+            )
+            data = SplitwiseTransactionSerializer(obj).data
+            transactions.append(data)
+
+            data["existing_transaction"] = existing_transactions.filter(splitwise_transaction_id__isnull=False).exists()
+
+        return Response({"result": transactions}, status=status.HTTP_200_OK)
+
 class GetTransactions(APIView):
     def get(self, request):
         user_id = request.GET.get("user_id")
@@ -159,3 +188,96 @@ class GetTransactions(APIView):
         transactions = SplitwiseTransaction.objects.filter(splitwise_user_id=user_id)
         serializer = SplitwiseTransactionSerializer(transactions, many=True)
         return JsonResponse(serializer.data)
+
+class UserFriendsInfoView(APIView):
+    @is_authenticated()
+    def get(self, request):
+        splitwise_obj = request.splitwise_obj
+        friends_info = splitwise_obj.get_friends()
+        if friends_info:
+            serializer = FriendSerializer(friends_info, many=True)
+            return Response({"result": serializer.data}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"error": "Failed to fetch user group info"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+class CreateSingleTransaction(APIView):
+    @is_authenticated()
+    def post(self, request):
+        user_id = request.user.getId()
+        splitwise_obj = request.splitwise_obj
+        transaction = request.data
+        users = transaction["users"]
+        users.append(request.user.id)
+        per_head_share = (float(transaction["cost"])/len(users))
+        per_head_share = round(per_head_share, 2)
+        cost = per_head_share * len(users)
+        user_share_mapping_list = []
+        for user in users:
+            paid_share = 0
+            if request.user.id == user:
+                paid_share = cost
+            user_share_mapping_list.append({
+                "id": user,
+                "paid_share": paid_share,
+                "owed_share": per_head_share,
+            })
+
+        obj, error = splitwise_obj.create_expense(cost, transaction["title"], transaction["groupId"], user_share_mapping_list)
+        if obj:
+            obj, _ = SplitwiseTransaction.objects.get_or_create(
+                bank_transaction_desc=transaction["title"],
+                splitwise_group_id=transaction["groupId"],
+                transaction_amount=cost,
+                splitwise_user_id=user_id,
+                splitwise_transaction_id=obj.id,
+            )
+            return Response({"result": {"transaction":transaction, "success": True, "description": ""}}, status=status.HTTP_200_OK)
+        if error:
+            return Response({"result": {"transaction":transaction,  "success": False,"errors": error.errors}}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"result": {"transaction":transaction, "success": True, "description": ""}}, status=status.HTTP_200_OK)
+
+class CreateBulkTransactions(APIView):
+    @is_authenticated()
+    def post(self, request):
+        splitwise_obj = request.splitwise_obj
+        data = request.data
+        transactions = data["transactions"]
+        result = {
+            "errors": [],
+            "success": [],
+        }
+        for transaction in transactions:
+            cost = transaction["transactionDetails"]["transaction_amount"]
+            title = transaction["transactionDetails"]["bank_transaction_desc"]
+            group_id = transaction["group"]
+            user_share_mapping_list = []
+            users = transaction["users"]
+            users.append(request.user.id)
+            per_head_share = (float(cost)/len(users))
+            per_head_share = round(per_head_share, 2)
+            cost = per_head_share * len(users)
+            for user in users:
+                paid_share = 0
+                if request.user.id == user:
+                    paid_share = cost
+                user_share_mapping_list.append({
+                    "id": user,
+                    "paid_share": paid_share,
+                    "owed_share": per_head_share,
+                })
+            obj, error = splitwise_obj.create_expense(cost, title, group_id, user_share_mapping_list)
+            if obj:
+                splitwise_transaction_id = obj.id
+                bank_transaction_id = transaction["transactionDetails"]["bank_transaction_id"]
+                obj = SplitwiseTransaction.objects.filter(bank_transaction_id=bank_transaction_id).last()
+                obj.splitwise_transaction_id = splitwise_transaction_id
+                obj.save()
+
+                splitwise_transaction_id
+                result["success"].append({"transaction":transaction, "success": True, "description": ""})
+            if error:
+                result["errors"].append({"transaction":transaction,  "success": False,"errors": error.errors})
+
+        return Response({"result": result}, status=status.HTTP_200_OK)

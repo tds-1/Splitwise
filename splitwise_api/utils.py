@@ -27,13 +27,19 @@ class SplitwiseUtils:
     def get_groups(self):
         return self.get_splitwise_obj().getGroups()
 
+    def get_friends(self):
+        return self.get_splitwise_obj().getFriends()
+
+    def get_user(self, id):
+        return self.get_splitwise_obj().getUser(id)
+
     def get_currencies(self):
         return self.get_splitwise_obj().getCurrencies()
 
     def get_group_summary(self, group_id: int):
         return self.get_splitwise_obj().getGroup(str(group_id))
 
-    def create_expense(self, cost: int, title: str, user_share_mapping_list: list = []):
+    def create_expense(self, cost, title: str, group_id: str, user_share_mapping_list: list = [], currency_code="INR"):
         # user_share_mapping = [{
         #     "user_id": 123,
         #     "paid_share": 0,
@@ -50,4 +56,6 @@ class SplitwiseUtils:
             user.setOwedShare(user_share_mapping["owed_share"])
             users.append(user)
         expense.setUsers(users)
+        expense.setGroupId(group_id)
+        expense.setCurrencyCode(currency_code)
         return self.get_splitwise_obj().createExpense(expense)

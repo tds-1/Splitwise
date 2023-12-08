@@ -19,9 +19,9 @@ class TimeStampedModel(models.Model):
 class SplitwiseTransaction(TimeStampedModel):
 
     splitwise_user_id = models.CharField(max_length=256)
-    bank_transaction_id = models.CharField(max_length=256)
-    bank_transaction_time = models.DateTimeField()
+    bank_transaction_id = models.CharField(max_length=256, null=True)
+    bank_transaction_time = models.DateTimeField(null=True)
     bank_transaction_desc = models.CharField(max_length=256)
     transaction_amount = models.DecimalField(max_digits=8, decimal_places=2)
-    splitwise_transaction_id = models.CharField(max_length=256)
+    splitwise_transaction_id = models.CharField(max_length=256, null=True)
     splitwise_group_id = models.CharField(max_length=256)

@@ -15,6 +15,7 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
+      - API_HOST=${API_HOST}
       - DB_HOST=db
       - DB_PORT=5432
     depends_on:
@@ -32,6 +33,8 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     networks:
       - private-network
+    ports:
+      - "5432:5432"
 
 volumes:
   db_data:

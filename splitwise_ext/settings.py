@@ -148,4 +148,7 @@ STATIC_URL = "/static/"
 SPLITWISE_CLIENT_ID = os.environ.get("SPLITWISE_CLIENT_ID")
 SPLITWISE_CLIENT_SECRET = os.environ.get("SPLITWISE_CLIENT_SECRET")
 
+API_HOST = os.environ.get("API_HOST")
+
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+

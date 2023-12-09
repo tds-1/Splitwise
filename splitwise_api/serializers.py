@@ -202,4 +202,4 @@ class SplitwiseTransactionSerializer(serializers.ModelSerializer):
         model = SplitwiseTransaction
         fields = ('id', 'splitwise_user_id', 'bank_transaction_id', 'bank_transaction_time',
                   'bank_transaction_desc', 'transaction_amount', 'splitwise_transaction_id',
-                  'splitwise_group_id')
+                  'splitwise_group_id', 'remark')

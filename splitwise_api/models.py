@@ -25,3 +25,5 @@ class SplitwiseTransaction(TimeStampedModel):
     transaction_amount = models.DecimalField(max_digits=8, decimal_places=2)
     splitwise_transaction_id = models.CharField(max_length=256, null=True)
     splitwise_group_id = models.CharField(max_length=256)
+    meta_data = models.JSONField(blank=True, null=True)
+    remark = models.JSONField(blank=True, null=True)

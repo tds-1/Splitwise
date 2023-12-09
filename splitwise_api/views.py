@@ -130,7 +130,7 @@ class UploadCsvView(APIView):
 
         user_id = request.user.getId()
         transactions = []
-        vendor = "paytm_wallet"
+        vendor = "paytm_bank"
         for row in reader:
             if vendor ==  "paytm_wallet":
                 date = datetime.strptime(row['Date'], "%d/%m/%Y %H:%M:%S") if row["Date"] else None
@@ -140,7 +140,7 @@ class UploadCsvView(APIView):
                     continue
                 bank_transaction_id = row['Wallet Txn ID']
                 description = row["Activity"] + row["Comment"]
-            elif vendor ==  "paytm":
+            elif vendor ==  "paytm_bank":
                 date = datetime.strptime(row['Date and Time'], "%d-%m-%Y %H:%M:%S") if row["Date and Time"] else None
                 if row["Type"] == "D":
                     debit = float(row['Amount']) if row['Amount'] else 0.0
@@ -148,6 +148,7 @@ class UploadCsvView(APIView):
                     continue
                 bank_transaction_id = row['Reference no']
                 description = row["Beneficiary name"]
+                remark = row["Narration"] + row["Remarks"]
             elif vendor ==  "bob":
                 print(row.keys())
                 if row["type"].strip() == "Credit":
@@ -173,6 +174,7 @@ class UploadCsvView(APIView):
                 bank_transaction_id=bank_transaction_id,
                 transaction_amount=debit,
                 splitwise_user_id=user_id,
+                remark=remark,
             )
             data = SplitwiseTransactionSerializer(obj).data
             transactions.append(data)
@@ -232,6 +234,7 @@ class CreateSingleTransaction(APIView):
                 transaction_amount=cost,
                 splitwise_user_id=user_id,
                 splitwise_transaction_id=obj.id,
+                meta_data=user_share_mapping_list,
             )
             return Response({"result": {"transaction":transaction, "success": True, "description": ""}}, status=status.HTTP_200_OK)
         if error:
@@ -273,11 +276,15 @@ class CreateBulkTransactions(APIView):
                 bank_transaction_id = transaction["transactionDetails"]["bank_transaction_id"]
                 obj = SplitwiseTransaction.objects.filter(bank_transaction_id=bank_transaction_id).last()
                 obj.splitwise_transaction_id = splitwise_transaction_id
+                obj.meta_data = user_share_mapping_list
                 obj.save()
 
                 splitwise_transaction_id
                 result["success"].append({"transaction":transaction, "success": True, "description": ""})
             if error:
                 result["errors"].append({"transaction":transaction,  "success": False,"errors": error.errors})
+            if not object and not error:
+                result["errors"].append({"transaction":transaction,  "success": False,"errors": "Unknown reason, contact Admin"})
+
 
         return Response({"result": result}, status=status.HTTP_200_OK)
